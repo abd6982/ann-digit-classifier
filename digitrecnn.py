@@ -10,13 +10,31 @@ def sigmoid(x):
 
 #Function to compute sigmoid gradient for back propagation
 def sigmoidGrad(x):
-    sigx = sigmoid(x)
+    #sigx = sigmoid(x)
     #return sigx * (1 - sigx)
     return x * (1 - x)
 
-#Function to compute cost and gradient
-def costFunc(params):
+#Function to compute cost
+def costfn(params):
 
+    #Reshape the weights from unrolled vector to matrices
+    weights1 = params[:(hidden_layer * (input_layer + 1))].reshape(hidden_layer, input_layer + 1)
+    weights2 = params[(hidden_layer * (input_layer + 1)):].reshape(output_layer, hidden_layer + 1)
+    
+
+    #Forward Propagation
+    a1 = np.c_[np.ones(m), data]
+    z2 = np.dot(a1, weights1.T)
+    a2 = np.c_[np.ones(m), sigmoid(z2)]
+    z3 = np.dot(a2, weights2.T)
+    a3 = sigmoid(z3)
+
+    cost = np.sum(- y_mat * np.log(a3) - (1 - y_mat) * np.log(1 - a3)) / m + (lmb / (2 * m)) * (np.sum(weights1[:, 1:] ** 2) + np.sum(weights2[:, 1:] ** 2))
+    return cost
+ 
+#Function to return gradient
+def gradfn(params):
+    
     #Reshape the weights from unrolled vector to matrices
     weights1 = params[:(hidden_layer * (input_layer + 1))].reshape(hidden_layer, input_layer + 1)
     weights2 = params[(hidden_layer * (input_layer + 1)):].reshape(output_layer, hidden_layer + 1)
@@ -38,17 +56,8 @@ def costFunc(params):
     D1[:, 1:] += (lmb / m * weights1[:,1:])
     D2[:, 1:] += (lmb / m * weights2[:,1:])
 
-    cost = np.sum(- y_mat * np.log(a3) - (1 - y_mat) * np.log(1 - a3)) / m + (lmb / (2 * m)) * (np.sum(weights1[:, 1:] ** 2) + np.sum(weights2[:, 1:] ** 2))
     grad = np.concatenate([D1.reshape(-1), D2.reshape(-1)])
-    return cost, grad
-
-#Function to return cost
-def cost(params):
- return costFunc(params)[0]
- 
-#Function to return gradient
-def grad(params):
- return costFunc(params)[1]
+    return grad
 
 #Function to classify the images after training ANN
 def classify(weights):
@@ -109,7 +118,7 @@ y_mat = np.eye(output_layer)[y]
 params = np.concatenate([weights1.reshape(-1), weights2.reshape(-1)])
 
 #Pass the parameters to the built-in fmin_cg optimizer to train the weights
-weights = optimize.fmin_cg(cost, x0 = params, fprime = grad, full_output = 1)
+weights = optimize.fmin_cg(costfn, x0 = params, fprime = gradfn, full_output = 1)
 
 #Classify the training images and check the accuracy of the ANN
 res = classify(weights[0])
